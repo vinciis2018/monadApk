@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "mona-apk",
+    "slug": "mona-apk",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "mona-apk"
+}

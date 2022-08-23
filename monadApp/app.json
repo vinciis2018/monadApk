@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "monadApp",
+    "slug": "monadApp",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "monadApp",
+  "android": {
+    "intentFilter": "MAIN",
+    "category": [
+      "LEANBACK_LAUNCHER",
+      "LAUNCHER"
+    ]
+  }
+}
