@@ -62,6 +62,7 @@ export function ScreenName({navigation}) {
       !errorScreen &&
       !errorFiles &&
       !errorPath &&
+      !loadingPath &&
       !updateScreenData
     ) {
       navigation.replace('VideoPlayer');
