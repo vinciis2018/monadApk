@@ -66,6 +66,9 @@ export function ScreenName({navigation}) {
     ) {
       navigation.replace('VideoPlayer');
     }
+    if (files && files.length === 0) {
+      updateScreenPlaylist(name);
+    }
   }, 60000);
 
   const dispatch = useDispatch();
@@ -118,12 +121,13 @@ export function ScreenName({navigation}) {
     updateScreenData,
   ]);
 
-  const updateScreenPlaylist = (screenName) => {
+  const updateScreenPlaylist = useCallback((screenName) => {
+
     setEditName(false);
     setName(screenName);
     setUpdateScreenData(true);
     dispatch(updateScreenName(screenName));
-  };
+  }, [dispatch]);
 
   const updateCampaign = useCallback(async () => {
     console.log('JEAADSDS', files);
@@ -161,6 +165,7 @@ export function ScreenName({navigation}) {
             }
           });
         } else {
+          updateScreenPlaylist(name);
           console.log('In Downloading Progress');
         }
       } else {
@@ -173,13 +178,15 @@ export function ScreenName({navigation}) {
       alert(err);
     }
     setUpdateScreenData(false);
-  }, [screen, dispatch, files, granted, loadingPath]);
+  }, [files, screen, granted, loadingPath, dispatch, updateScreenPlaylist, name]);
 
 
   const changeText = (text) => {
     setEditName(true);
     setName(text);
-  }
+  };
+
+
   return (
     <SafeAreaView style={styles.container}>
         {editName ? (

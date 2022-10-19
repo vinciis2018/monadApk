@@ -19,11 +19,14 @@ import { getFiles, checkPlaylist, getScreenDetails } from '../Actions';
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
 const VIDEO_CONTAINER_HEIGHT = DEVICE_HEIGHT;
+const VIDEO_CONTAINER_WIDTH = DEVICE_WIDTH;
+// const VIDEO_CONTAINER_HEIGHT = 1080;
+// const VIDEO_CONTAINER_WIDTH = 1920;
 
 export const VideoPlayer = ({ navigation }) => {
   const _video = useRef(null);
   const posterImg = useRef({uri: 'https://arweave.net/pziELbF_OhcQUgJbn_d1j_o_3ASHHHXA3_GoTdJSnlg'});
-
+ 
   const [screenName, setScreenName] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -176,12 +179,20 @@ export const VideoPlayer = ({ navigation }) => {
     if (files && playlist && screen) {
       setTimeout(() => {
         if (screen.length !== files.length) {
+          files.map(async file => {
+            // console.log(file);
+            const exists = await RNFS.exists(file);
+            console.log('exists', exists);
+            if (exists) {
+              await RNFS.unlink(file);
+            }
+          });
           navigation.replace('ScreenName');
         }
         if (files.length !== playlist.length) {
           setPlaylist(files.map(file => file));
         }
-      }, 5000);
+      }, 2000);
     }
   };
 
@@ -238,7 +249,15 @@ export const VideoPlayer = ({ navigation }) => {
   const verifyPlaylist = async () => {
     setVerify(true);
     const screenPlayData = checkScreenData.map((video) => video.video);
-    if (screenPlayData.length !== playlist.length) {
+    if (screenPlayData.length !== playlist.length && files) {
+      files.map(async file => {
+        // console.log(file);
+        const exists = await RNFS.exists(file);
+        console.log('exists', exists);
+        if (exists) {
+          await RNFS.unlink(file);
+        }
+      });
       setPaused(true);
       navigation.replace('ScreenName');
     }
@@ -307,16 +326,16 @@ const styles = StyleSheet.create({
   },
   mediaPlayer: {
     position: 'absolute',
-    aspectRatio: DEVICE_WIDTH / VIDEO_CONTAINER_HEIGHT,
-    // top: 0,
+    aspectRatio: VIDEO_CONTAINER_WIDTH / VIDEO_CONTAINER_HEIGHT,
+    top: 0,
     left: 0,
-    // bottom: 0,
+    bottom: 0,
     right: 0,
     // backgroundColor: 'black',
     // justifyContent: 'center',
     flex: 1,
     height: VIDEO_CONTAINER_HEIGHT,
     // alignSelf: 'stretch',
-    maxWidth: DEVICE_WIDTH,
+    maxWidth: VIDEO_CONTAINER_WIDTH,
   },
 });
