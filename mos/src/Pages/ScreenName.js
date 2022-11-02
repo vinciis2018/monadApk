@@ -62,7 +62,6 @@ export function ScreenName({navigation}) {
       !errorScreen &&
       !errorFiles &&
       !errorPath &&
-      !loadingPath &&
       !updateScreenData
     ) {
       navigation.replace('VideoPlayer');
@@ -70,7 +69,7 @@ export function ScreenName({navigation}) {
     if (files && files.length === 0) {
       updateScreenPlaylist(name);
     }
-  }, 60000);
+  }, 30000);
 
   const dispatch = useDispatch();
 
@@ -219,7 +218,7 @@ export function ScreenName({navigation}) {
                 <Text style={styles.heading}>
                   {
                     screen ?
-                    `Yeah!!! Successfully Changed Screen Name to ${name}` :
+                    `Yeah!!! Successfully synced with your screen ${name}` :
                     'Please Wait'
                   }
                 </Text>
