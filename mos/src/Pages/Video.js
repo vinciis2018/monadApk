@@ -14,7 +14,7 @@ import DeviceInfo from 'react-native-device-info';
 
 //Import React Native Video to play video
 import Video from 'react-native-video';
-import { getFiles, checkPlaylist, getScreenDetails } from '../Actions';
+import { getFiles, checkPlaylist, getScreenDetails, getSyncedScreen } from '../Actions';
 
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
@@ -25,8 +25,7 @@ const VIDEO_CONTAINER_WIDTH = DEVICE_WIDTH;
 
 export const VideoPlayer = ({ navigation }) => {
   const _video = useRef(null);
-  const posterImg = useRef({uri: 'https://arweave.net/pziELbF_OhcQUgJbn_d1j_o_3ASHHHXA3_GoTdJSnlg'});
- 
+  const posterImg = useRef({uri: 'https://ipfs.io/ipfs/QmXQs8D4PJTdZ1xWFuU32FTFT2DU2JaXbsTnM4waHTAyzr'});
   const [screenName, setScreenName] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -42,15 +41,25 @@ export const VideoPlayer = ({ navigation }) => {
   const [deviceDisplay, setDeviceDisplay] = useState(null);
   const [repeat, setRepeat] = useState(false);
 
+  const [syncCode, setSyncCode] = useState(null);
   const [playlist, setPlaylist] = useState([]);
   const [index, setIndex] = useState(0);
   const [vid, setVid] = useState(
     // files?.map(file => file)[index] ||
-    'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT'
+    // 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT'
+    'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb'
+    // 'https://ipfs.io/ipfs/bafybeicncq7nbgewlj6sxbzewxl5dqbzqswyaxezu5inazk6rlf5bj2zca?filename=Renaissance.mp4'
   );
 
   const screenUpdate = useSelector((state) => state.screenUpdate);
-  const {data: screenPlaylist, success} = screenUpdate;
+  const {data: screenPlaylist} = screenUpdate;
+
+  const syncedScreen = useSelector(state => state.syncedScreen);
+  const {
+    // loading: loadingSyncedScreen,
+    error: errorSyncedScreen,
+    // data: screenSynced,
+  } = syncedScreen;
 
   const screenDetails = useSelector(state => state.screenDetails);
   const {
@@ -83,17 +92,21 @@ export const VideoPlayer = ({ navigation }) => {
       AsyncStorage.getItem('playlist').then((res) => {
           setScreenName(res);
       });
-    } else {
-      if (!files) {
-        dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
-      // } else {
-      //   setPlaylist(files.map(file => file));
-      }
-      if (!screen) {
-        // console.log(screenName);
-        dispatch(getScreenDetails(screenName));
-      }
     }
+    if (!files) {
+      dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
+    // } else {
+    //    if (playlist.length === 0 && files.length !== 0) {
+    //   }
+    } else {
+        setPlaylist(files.map(file => file));
+    }
+    if (!screen) {
+      dispatch(getScreenDetails(screenName));
+    }
+    AsyncStorage.getItem('syncCode').then((res) => {
+      setSyncCode(res);
+    });
     DeviceInfo.getIpAddress().then((res) => {
       setDeviceIp(res);
     });
@@ -113,13 +126,12 @@ export const VideoPlayer = ({ navigation }) => {
       }
     }, 120000);
 
-
     if (files && files.length === 0) {
       navigation.replace('ScreenName');
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, files, screenName, screen, index, playlist, isPlaying, verify, screenPlaylist]);
+  }, [dispatch, files, screenName, screen, index, isPlaying, verify, screenPlaylist]);
 
   // const onReplay = () => {
   //   //Handler for Replay
@@ -138,9 +150,13 @@ export const VideoPlayer = ({ navigation }) => {
     if (index === 0 && (data.seekableDuration - data.currentTime) < 0.2) {
       onEnd();
     }
+    if (errorSyncedScreen) {
+      navigation.replace('ScreenName');
+    }
   };
 
   const onEnd = () => {
+
     setPlayerState(true);
     const currentVid = vid.split('/').slice(-1);
     const timeNow = new Date();
@@ -150,26 +166,79 @@ export const VideoPlayer = ({ navigation }) => {
       deviceMaac: deviceMaac,
       deviceDisplay: deviceDisplay,
     };
-    // console.log(screenName);
+    // console.log(syncCode);
     if (!files) {
       dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
     } else {
-      if (!playlist) {
+      console.log('files', files.length);
+      console.log('playlist', playlist.length);
+      if (!playlist || playlist.length === 0 || playlist.length !== files.length) {
         setPlaylist(files.map(file => file));
-      } else {
-        dispatch(checkPlaylist({screenName: screenName, timeNow, currentVid, deviceInfo}));
-        setVid(playlist.map((video) => video)[index]);
-        if (checkScreenData) {
-          verifyPlaylist();
-          dispatch(getScreenDetails(screenName));
-        }
+      }
+      dispatch(checkPlaylist({screenName: screenName, timeNow, currentVid, deviceInfo}));
+      setVid(files.map((video) => video)[index]);
+
+      if (checkScreenData) {
+        verifyPlaylist();
         console.log('DONE PLAYING');
       }
     }
+
+    if (files && screenPlaylist && files.length === screenPlaylist.length) {
+      const filesCid = files.map((file) => {
+        return file.split('/').slice(-1)[0].split('.').slice(0)[0];
+      });
+      const playlistCid = screenPlaylist.map((pl) => {
+        return pl.video.split('/').slice(-1)[0];
+      });
+
+      let sameCid = 0;
+      for (var i = 0; i < filesCid.length; i++) {
+        if (playlistCid.includes(filesCid[i])) {
+          sameCid = sameCid + 1;
+        }
+      }
+      if (sameCid !== files.length && sameCid !== screenPlaylist.length) {
+        console.log('ONENDWALA', sameCid);
+        navigation.replace('ScreenName');
+      }
+
+    }
+    dispatch(getSyncedScreen(syncCode));
   };
 
   const onLoadStart = data => {
     // _video.current.unloadAsync()
+    if (data.src.uri !== 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT') {
+      const vidUrl = `https://ipfs.io/ipfs/${data.src.uri.split('/').slice(-1)[0]?.split('.')?.slice(0)[0]}`;
+      // console.log(vidUrl)
+      const options = {
+        method: 'HEAD',
+      };
+      fetch(vidUrl, options)
+        .then((res) => {
+          if (!res.ok) {throw res.statusText;}
+          const realSize = res.headers.get('content-length');
+          RNFS.stat(data.src.uri).then((response) => {
+            console.log('res', response);
+            const fileSize = response;
+
+            if (Math.floor(fileSize.size) !== Math.floor(realSize)) {
+              console.log('downloaded size', Math.floor(fileSize.size));
+              console.log('real size', Math.floor(realSize));
+              return RNFS.unlink(data.src.uri).then(() => {
+                console.log('Deleting File', data.src.uri);
+                navigation.replace('ScreenName');
+              }).catch((err) => {
+                console.log(err.message);
+              });
+            }
+          }).catch((err) => {
+            console.log(err.message);
+          });
+        });
+    }
+
     setIsLoading(true);
     console.log('ON LOAD START', data.src.uri);
     if (errorCheckScreen) {
@@ -189,10 +258,10 @@ export const VideoPlayer = ({ navigation }) => {
           });
           navigation.replace('ScreenName');
         }
-        if (files.length !== playlist.length) {
-          setPlaylist(files.map(file => file));
-        }
+        setPlaylist(files.map(file => file));
       }, 2000);
+    } else {
+      dispatch(getScreenDetails(screenName));
     }
   };
 
@@ -246,20 +315,22 @@ export const VideoPlayer = ({ navigation }) => {
     setIsFullScreen(isFullScreen);
   };
 
-  const verifyPlaylist = async () => {
+  const verifyPlaylist = () => {
     setVerify(true);
     const screenPlayData = checkScreenData.map((video) => video.video);
-    if (screenPlayData.length !== playlist.length && files) {
-      files.map(async file => {
+    console.log('Screenplaydata', screenPlayData.length);
+    console.log('playlist here', playlist.length);
+    if (screenPlayData.length !== playlist.length && files && playlist && playlist.length !== 0) {
+      files.map(file => {
         // console.log(file);
-        const exists = await RNFS.exists(file);
-        console.log('exists', exists);
-        if (exists) {
-          await RNFS.unlink(file);
-        }
+        RNFS.exists(file).then((res) => {
+          if (res) {
+            // setPaused(true);
+            setPlaylist(files.map(fl => fl));
+            navigation.replace('ScreenName');
+          }
+        });
       });
-      setPaused(true);
-      navigation.replace('ScreenName');
     }
   };
 
@@ -300,8 +371,8 @@ export const VideoPlayer = ({ navigation }) => {
           //   uri: 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT',
           // }}
           style={styles.mediaPlayer}
-          // volume={10}
-          controls={true}
+          volume={0}
+          controls={false}
           playInBackground={false}
           poster={posterImg.current.uri}
           posterResizeMode = {'stretch'}

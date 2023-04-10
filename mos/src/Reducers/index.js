@@ -16,8 +16,23 @@ import {
   SCREEN_DETAILS_SUCCESS,
   SCREEN_DETAILS_FAIL,
   SCREEN_NAME_EDIT_RESET,
+  GET_SYNCED_SCREEN_REQUEST,
+  GET_SYNCED_SCREEN_SUCCESS,
+  GET_SYNCED_SCREEN_FAIL,
 } from '../Constants';
 
+export function syncedScreenReducer(state = {}, action) {
+  switch (action.type) {
+    case GET_SYNCED_SCREEN_REQUEST:
+      return { loading: true };
+    case GET_SYNCED_SCREEN_SUCCESS:
+      return { loading: false, data: action.payload };
+    case GET_SYNCED_SCREEN_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+}
 export function screenDetailsReducer(state = {}, action) {
   switch (action.type) {
     case SCREEN_DETAILS_REQUEST:
@@ -75,7 +90,7 @@ export function filesGetReducer(state = {}, action) {
 export function campaignsDownloadReducer(state = {}, action) {
   switch (action.type) {
     case DOWNLOAD_CAMPAIGNS_REQUEST:
-      return {loading: true};
+      return {loading: true, progress: action.payload};
     case DOWNLOAD_CAMPAIGNS_SUCCESS:
       return {loading: false, data: action.payload};
     case DOWNLOAD_CAMPAIGNS_FAIL:

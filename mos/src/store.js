@@ -10,6 +10,7 @@ import {
   playlistCheckReducer,
   screenDetailsReducer,
   screenUpdateReducer,
+  syncedScreenReducer,
 } from './Reducers';
 
 const initialState = {
@@ -19,6 +20,7 @@ const initialState = {
 };
 
 const reducer = combineReducers({
+  syncedScreen: syncedScreenReducer,
   screenDetails: screenDetailsReducer,
   screenUpdate: screenUpdateReducer,
   playlistCheck: playlistCheckReducer,
