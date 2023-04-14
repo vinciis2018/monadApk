@@ -133,15 +133,15 @@ export function ScreenName({navigation}) {
     }
 
 
-    if (name && files && screenPlaylist && files.length !== screenPlaylist.length) {
+    if (name && files && screenPlaylist) {
       console.log('Updating HERE NOW');
       updateScreenPlaylist(name);
 
       // updateCampaign();
-      console.log(name);
+      console.log('screeName: ', name);
 
     }
-    console.log(syncCode.current);
+    console.log('syncCode', syncCode.current);
 
 
     PermissionsAndroid.request(
@@ -189,7 +189,7 @@ export function ScreenName({navigation}) {
           console.log('Redirecting to video player');
           navigation.replace('VideoPlayer');
         }
-        console.log(trigger);
+        console.log('trigger: ', trigger);
       }, 10000);
       return () => {
           clearInterval(interval);
@@ -226,7 +226,7 @@ export function ScreenName({navigation}) {
     dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
 
     if (screenFiles && screenPlaylist) {
-      console.log(screenFiles);
+      console.log('screenFiles: ', screenFiles.length);
       playFiles.current = screenFiles.map(video => video).map(v => v?.split('/').splice(-1)[0]);
       playLists.current = screenPlaylist.map(video => video.video).map(v => v?.split('/').splice(-1)[0]).map(f => f + '.mp4');
       dataToPlay.current = playFiles.current.filter(item => playLists.current.includes(item));
@@ -277,7 +277,7 @@ export function ScreenName({navigation}) {
       screenFiles.map(async (file) => {
         // console.log(file);
         RNFS.exists(file).then((res) => {
-          console.log('exists', res);
+          console.log('exists file: ', res);
           if (res) {
             RNFS.unlink(file).then(() => {});
           }
@@ -311,13 +311,13 @@ export function ScreenName({navigation}) {
 
                 if (dataToPlay.current.includes(video.video.split('/').slice(-1)[0] + '.mp4')){
 
-                  console.log(dataToPlay.current);
+                  console.log('dataToPlayCurrent: ', dataToPlay.current);
                   console.log('Downloaded: ', index, video.video.split('/').slice(-1)[0]);
 
                 } else {
                   dispatch(downloadCampaigns({url: video.video, index}));
-                  console.log(playLists.current.length);
-                  console.log(playFiles.current.length);
+                  console.log('after downloadcampaign: ', playLists.current.length);
+                  console.log('after downloadcampaign: ', playFiles.current.length);
                 }
               }
             });

@@ -88,22 +88,24 @@ export const VideoPlayer = ({ navigation }) => {
     // if (!success) {
     //   navigation.replace('ScreenName');
     // }
-    if (!screenName) {
+    if (!screenName || screenName === null) {
       AsyncStorage.getItem('playlist').then((res) => {
           setScreenName(res);
       });
     }
-    if (!files) {
+    if (!screen && screenName !== null) {
+      dispatch(getScreenDetails(screenName));
+    }
+    if (!files && screenName !== null) {
       dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
     // } else {
     //    if (playlist.length === 0 && files.length !== 0) {
     //   }
-    } else {
-        setPlaylist(files.map(file => file));
     }
-    if (!screen) {
-      dispatch(getScreenDetails(screenName));
+    if (files) {
+      setPlaylist(files.map(file => file));
     }
+
     AsyncStorage.getItem('syncCode').then((res) => {
       setSyncCode(res);
     });
@@ -167,22 +169,24 @@ export const VideoPlayer = ({ navigation }) => {
       deviceDisplay: deviceDisplay,
     };
     // console.log(syncCode);
-    if (!files) {
-      dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
-    } else {
-      console.log('files', files.length);
-      console.log('playlist', playlist.length);
-      if (!playlist || playlist.length === 0 || playlist.length !== files.length) {
-        setPlaylist(files.map(file => file));
+    // if (!files && screenName !== null) {
+    //   dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
+    // } else {
+      if (files) {
+        console.log('files: ', files.length);
+        if (!playlist || playlist.length === 0 || playlist.length !== files.length) {
+          setPlaylist(files.map(file => file));
+        }
+        console.log('playlist: ', playlist.length);
+        dispatch(checkPlaylist({screenName: screenName, timeNow, currentVid, deviceInfo}));
+        setVid(files.map((video) => video)[index]);
+        // console.log(checkScreenData);
+        if (checkScreenData) {
+          verifyPlaylist();
+          console.log('DONE PLAYING');
+        }
       }
-      dispatch(checkPlaylist({screenName: screenName, timeNow, currentVid, deviceInfo}));
-      setVid(files.map((video) => video)[index]);
-
-      if (checkScreenData) {
-        verifyPlaylist();
-        console.log('DONE PLAYING');
-      }
-    }
+    // }
 
     if (files && screenPlaylist && files.length === screenPlaylist.length) {
       const filesCid = files.map((file) => {
@@ -208,8 +212,9 @@ export const VideoPlayer = ({ navigation }) => {
   };
 
   const onLoadStart = data => {
+    console.log(screenName);
     // _video.current.unloadAsync()
-    if (data.src.uri !== 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT') {
+    if (data.src.uri !== 'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb') {
       const vidUrl = `https://ipfs.io/ipfs/${data.src.uri.split('/').slice(-1)[0]?.split('.')?.slice(0)[0]}`;
       // console.log(vidUrl)
       const options = {
@@ -228,13 +233,24 @@ export const VideoPlayer = ({ navigation }) => {
               console.log('real size', Math.floor(realSize));
               return RNFS.unlink(data.src.uri).then(() => {
                 console.log('Deleting File', data.src.uri);
+                RNFS.readDir(RNFS.DownloadDirectoryPath).then((fl) => {
+                    if (fl.length >= playlist.length) {
+                      fl.map((f) => {
+                        RNFS.unlink(f).then(() => {});
+                      });
+                    }
+                }).catch((e) => {
+                  console.log('e', e);
+                });
                 navigation.replace('ScreenName');
-              }).catch((err) => {
-                console.log(err.message);
+              }).catch((error) => {
+                console.log('error loadstart: ', error.message);
               });
+
+
             }
           }).catch((err) => {
-            console.log(err.message);
+            console.log('err loadstart: ', err.message);
           });
         });
     }
@@ -250,18 +266,25 @@ export const VideoPlayer = ({ navigation }) => {
         if (screen.length !== files.length) {
           files.map(async file => {
             // console.log(file);
-            const exists = await RNFS.exists(file);
-            console.log('exists', exists);
-            if (exists) {
-              await RNFS.unlink(file);
-            }
+            RNFS.exists(file).then((res) => {
+              console.log('exists', res);
+              if (res) {
+                RNFS.unlink(file).then(() => {});
+              }
+            });
           });
           navigation.replace('ScreenName');
         }
         setPlaylist(files.map(file => file));
       }, 2000);
     } else {
-      dispatch(getScreenDetails(screenName));
+      if (screenName !== null) {
+        dispatch(getScreenDetails(screenName));
+      } else {
+        AsyncStorage.getItem('playlist').then((res) => {
+          setScreenName(res);
+      });
+      }
     }
   };
 
@@ -272,8 +295,10 @@ export const VideoPlayer = ({ navigation }) => {
     setIsFullScreen(true);
 
     console.log(`ON LOAD : ${JSON.stringify(data)}`);
-    if (files) {
-      if (!playlist) {
+    if (!files && screenName !== null) {
+      dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
+    } else {
+      if (!playlist && files) {
         setPlaylist(files.map(file => file));
       } else {
         if (playlist.length === 1) {
@@ -292,8 +317,6 @@ export const VideoPlayer = ({ navigation }) => {
           }
         }
       }
-    } else {
-      dispatch(getFiles(RNFS.DownloadDirectoryPath, screenName));
     }
   };
 
@@ -368,7 +391,7 @@ export const VideoPlayer = ({ navigation }) => {
           //   uri: '/storage/emulated/0/Download/QmNubs7ShhWUDcUN2kSmTxp6HvLE4zdz5UnFRKDdF9i1n8.mp4',
           // }}
           // source={{
-          //   uri: 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT',
+          //   uri: 'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb',
           // }}
           style={styles.mediaPlayer}
           volume={0}

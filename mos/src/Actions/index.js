@@ -138,13 +138,14 @@ export const checkPlaylist =
     }
   };
 //  get local files
-export const getFiles = (path, screenName) => async dispatch => {
+export const getFiles = (path, screenName) => async (dispatch) => {
   dispatch({
     type: GET_LOCAL_MEDIA_REQUEST,
   });
+  // console.log('screenNameandPath: ', path, screenName);
   try {
     const {data} = await Axios.get(`${APP_SERVER_URL}/${screenName}/screenName`);
-    // console.log(data)
+    // console.log('data', data.length);
     const files = await RNFS.readDir(path);
 
     // console.log(files);
@@ -153,6 +154,14 @@ export const getFiles = (path, screenName) => async dispatch => {
 
     const sameData = playFiles.filter(item => playlist.includes(item));
     const playingData = sameData.map(dataP => path + '/' + dataP);
+    // console.log('playFiles: ', playFiles);
+    // console.log('playlist: ', playlist);
+    // console.log('sameData: ', sameData);
+
+    // var array3 = playFiles.concat(playlist);
+    // var array2 = array3.sort((a, b) => { return a > b; });
+    // var array1 = array2.filter((num, index) => { return num !== array2[index + 1]; });
+    // console.log(array2);
 
     dispatch({
       type: GET_LOCAL_MEDIA_SUCCESS,
