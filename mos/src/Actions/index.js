@@ -114,7 +114,7 @@ export const checkPlaylist =
     });
     // console.log(screenName, timeNow);
     try {
-      // console.log(deviceInfo);
+      // console.log({screenName, timeNow, currentVid, deviceInfo});
       const {data} = await Axios.get(
         `${APP_SERVER_URL}/${screenName}/screenName/${timeNow}/${currentVid}`,
         {
