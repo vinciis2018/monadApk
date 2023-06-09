@@ -47,7 +47,9 @@ export const VideoPlayer = ({ navigation }) => {
   const [vid, setVid] = useState(
     // files?.map(file => file)[index] ||
     // 'https://ipfs.io/ipfs/QmNmC8fghVBMuWmrf1QXeiuznYCaYQC7AcX4kNYGKJz1iT'
-    'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb'
+    'https://ipfs.io/ipfs/bafybeiak57l5erbtbmmcywgh47eyywa2kqwbxbhtzrxe65he6k66agjvoi'
+    // 'https://ipfs.io/ipfs/bafybeiap2zehuvjm4ktykjo5mlphn5bzxp7f3gv7ro6hyztgkk6grjybei'
+    // 'https://bafybeiap2zehuvjm4ktykjo5mlphn5bzxp7f3gv7ro6hyztgkk6grjybei.ipfs.w3s.link/LOGO%20Comp.mp4'
     // 'https://ipfs.io/ipfs/bafybeicncq7nbgewlj6sxbzewxl5dqbzqswyaxezu5inazk6rlf5bj2zca?filename=Renaissance.mp4'
   );
 
@@ -91,7 +93,7 @@ export const VideoPlayer = ({ navigation }) => {
     if (!screenName || screenName === null) {
       AsyncStorage.getItem('playlist').then((res) => {
           setScreenName(res);
-      });
+      }).catch((err) => err);
     }
     if (!screen && screenName !== null) {
       dispatch(getScreenDetails(screenName));
@@ -108,20 +110,19 @@ export const VideoPlayer = ({ navigation }) => {
 
     AsyncStorage.getItem('syncCode').then((res) => {
       setSyncCode(res);
-    });
+    }).catch((err) => err);
     DeviceInfo.getIpAddress().then((res) => {
       setDeviceIp(res);
-    });
+    }).catch((err) => err);
     DeviceInfo.getMacAddress().then((res) => {
       setDeviceMaac(res);
-
-    });
+    }).catch((err) => err);
     DeviceInfo.getDisplay().then((res) => {
       setDeviceDisplay(res);
-    });
+    }).catch((err) => err);
     DeviceInfo.getAndroidId().then((res) => {
       setDeviceId(res);
-    });
+    }).catch((err) => err);
     setTimeout(() => {
       if (!verify) {
         setIsPlaying(false);
@@ -214,7 +215,7 @@ export const VideoPlayer = ({ navigation }) => {
   const onLoadStart = data => {
     console.log(screenName);
     // _video.current.unloadAsync()
-    if (data.src.uri !== 'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb') {
+    if (screenName && data.src.uri !== 'https://ipfs.io/ipfs/QmT6oYBAWBVe3GC8onUerr5SDn2YxYL3gBWKbv22152zmb') {
       const vidUrl = `https://ipfs.io/ipfs/${data.src.uri.split('/').slice(-1)[0]?.split('.')?.slice(0)[0]}`;
       // console.log(vidUrl)
       const options = {
@@ -239,19 +240,25 @@ export const VideoPlayer = ({ navigation }) => {
                         RNFS.unlink(f).then(() => {});
                       });
                     }
+                    return;
                 }).catch((e) => {
                   console.log('e', e);
+                  return e;
                 });
                 navigation.replace('ScreenName');
               }).catch((error) => {
                 console.log('error loadstart: ', error.message);
+                return error;
               });
 
 
             }
           }).catch((err) => {
             console.log('err loadstart: ', err.message);
+            return err;
           });
+        }).catch((err) => {
+          return err;
         });
     }
 
@@ -269,9 +276,9 @@ export const VideoPlayer = ({ navigation }) => {
             RNFS.exists(file).then((res) => {
               console.log('exists', res);
               if (res) {
-                RNFS.unlink(file).then(() => {});
+                RNFS.unlink(file).then(() => {}).catch((err) => err);
               }
-            });
+            }).catch((err) => err);
           });
           navigation.replace('ScreenName');
         }
@@ -283,7 +290,10 @@ export const VideoPlayer = ({ navigation }) => {
       } else {
         AsyncStorage.getItem('playlist').then((res) => {
           setScreenName(res);
-      });
+        }).catch((error) => {
+          console.log('');
+          return error;
+        });
       }
     }
   };
@@ -352,6 +362,9 @@ export const VideoPlayer = ({ navigation }) => {
             setPlaylist(files.map(fl => fl));
             navigation.replace('ScreenName');
           }
+        }).catch((error) => {
+          console.log('verify playlist: ', error);
+          return error;
         });
       });
     }

@@ -17,6 +17,7 @@ import {
   updateScreenName,
   getScreenDetails,
   getSyncedScreen,
+  sendSyncCode,
 } from '../Actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
@@ -29,6 +30,7 @@ import Randomstring from 'randomstring';
 // const backgroundImage = {uri: 'https://ipfs.io/ipfs/QmReP1QDuv1nMdu42cP3YnbxgC6ASQecHGfd12gTEAziL2'};
 // const loadingImage = {uri: 'https://ipfs.io/ipfs/QmcoxA7AH1fUxeU17tyf2FUX2sBf8y7xZM1dxuCNZD3Wxu'};
 // const errorImage = {uri: 'https://ipfs.io/ipfs/QmVaa91XmU3FsNEqhKsC8DA8NnoYQw1j6ST3dbAaDTS4s5'};
+import DeviceInfo from 'react-native-device-info';
 
 export function ScreenName({navigation}) {
 
@@ -45,7 +47,10 @@ export function ScreenName({navigation}) {
   const [screenPlaylist, setScreenPlaylist] = useState(null);
   const [trigger, setTrigger] = useState(false);
   const [screenFiles, setScreenFiles] = useState(null);
-
+  const [deviceId, setDeviceId] = useState(null);
+  const [deviceIp, setDeviceIp] = useState(null);
+  const [deviceMaac, setDeviceMaac] = useState(null);
+  const [deviceDisplay, setDeviceDisplay] = useState(null);
   const syncedScreen = useSelector(state => state.syncedScreen);
   const {
     loading: loadingSyncedScreen,
@@ -73,6 +78,19 @@ export function ScreenName({navigation}) {
 
   useEffect(() => {
 
+    DeviceInfo.getIpAddress().then((res) => {
+      setDeviceIp(res);
+    }).catch((err) => err);
+    DeviceInfo.getMacAddress().then((res) => {
+      setDeviceMaac(res);
+
+    }).catch((err) => err);
+    DeviceInfo.getDisplay().then((res) => {
+      setDeviceDisplay(res);
+    }).catch((err) => err);
+    DeviceInfo.getAndroidId().then((res) => {
+      setDeviceId(res);
+    }).catch((err) => err);
     if (errorPath || errorFiles) {
       console.log('error in useEffect :', errorPath || errorFiles);
       RNFS.readDir(RNFS.DownloadDirectoryPath).then((fl) => {
@@ -82,12 +100,12 @@ export function ScreenName({navigation}) {
             if (res) {
             console.log('exists', res);
 
-              RNFS.unlink(file.path).then(() => {});
+              RNFS.unlink(file.path).then(() => {}).catch((err) => err);
             }
-          });
+          }).catch((err) => err);
 
         });
-      });
+      }).catch((err) => err);
     }
 
     if (!name) {
@@ -95,7 +113,7 @@ export function ScreenName({navigation}) {
         if (res) {
           setName(res);
         }
-      });
+      }).catch((err) => err);
     }
 
     if (!syncCode.current || (syncCode.current === null)) {
@@ -104,8 +122,15 @@ export function ScreenName({navigation}) {
           syncCode.current = res;
         } else {
           generateCode();
+          dispatch(sendSyncCode({
+            deviceIp: deviceIp,
+            deviceMaac: deviceMaac,
+            deviceDisplay: deviceDisplay,
+            deviceId: deviceId,
+            syncCode: syncCode.current,
+          }));
         }
-      });
+      }).catch((err) => err);
     }
 
     if (!screenSynced || !myScreen.current || (myScreen.current === null)) {
@@ -120,7 +145,7 @@ export function ScreenName({navigation}) {
         setName(screenSynced.screen.name);
         setScreenPlaylist(screenSynced.myScreenVideos);
         dispatch(getFiles(RNFS.DownloadDirectoryPath, screenSynced.screen.name));
-        console.log('screenSynced');
+        console.log('screenSynced', RNFS.DownloadDirectoryPath);
 
       }
 
@@ -162,7 +187,7 @@ export function ScreenName({navigation}) {
 
     if (!files || files === undefined) {
       RNFS.mkdir(RNFS.DownloadDirectoryPath).then(() => {
-      });
+      }).catch((err) => err);
     } else {
       setScreenFiles(files);
     }
@@ -184,7 +209,7 @@ export function ScreenName({navigation}) {
           screenFiles.length === screenPlaylist.length
         ) {
           screenFiles.map((file) => {
-            RNFS.stat(file).then((res) => {});
+            RNFS.stat(file).then(() => {}).catch((err) => err);
           });
           console.log('Redirecting to video player');
           navigation.replace('VideoPlayer');
@@ -250,12 +275,12 @@ export function ScreenName({navigation}) {
               if (res) {
                 console.log('exists', res);
 
-                RNFS.unlink(file.path).then(() => {});
+                RNFS.unlink(file.path).then(() => {}).catch((err) => err);
               }
-            });
+            }).catch((err) => err);
 
           });
-        });
+        }).catch((err) => err);
       }
     if (
       !errorFiles &&
@@ -279,14 +304,14 @@ export function ScreenName({navigation}) {
         RNFS.exists(file).then((res) => {
           console.log('exists file: ', res);
           if (res) {
-            RNFS.unlink(file).then(() => {});
+            RNFS.unlink(file).then(() => {}).catch((err) => err);
           }
-        });
+        }).catch((err) => err);
       });
     }
     try {
       if (!RNFS.DownloadDirectoryPath) {
-        RNFS.mkdir(RNFS.DownloadDirectoryPath).then(() => {});
+        RNFS.mkdir(RNFS.DownloadDirectoryPath).then(() => {}).catch((err) => err);
       }
       PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
@@ -297,7 +322,7 @@ export function ScreenName({navigation}) {
         },
       ).then((res) => {
         setGranted(res);
-      });
+      }).catch((err) => err);
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
         console.log('Storage Permission Granted.', screenPlaylist.length);
         dispatch(getSyncedScreen(syncCode.current));
@@ -315,9 +340,16 @@ export function ScreenName({navigation}) {
                   console.log('Downloaded: ', index, video.video.split('/').slice(-1)[0]);
 
                 } else {
+                  if (
+                    !errorFiles &&
+                    !progress &&
+                    !loadingPath &&
+                    !loadingFiles
+                  ) {
                   dispatch(downloadCampaigns({url: video.video, index}));
                   console.log('after downloadcampaign: ', playLists.current.length);
                   console.log('after downloadcampaign: ', playFiles.current.length);
+                  }
                 }
               }
             });
@@ -338,7 +370,7 @@ export function ScreenName({navigation}) {
       alert(err);
     }
     setUpdateScreenData(false);
-  }, [screenFiles, screenPlaylist, granted, loadingPath, dispatch, progress, name]);
+  }, [screenFiles, screenPlaylist, granted, dispatch, loadingPath, progress, name, errorFiles, loadingFiles]);
 
 
   return (
@@ -452,7 +484,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     color: '#CCCCFF',
-    fontFamily: 'serif',
+    fontFamily: 'ConsolaMono-Bold',
     // fontWeight: 'bold',
   },
   left: {

@@ -1,4 +1,4 @@
-package com.mos;
+package com.monatv;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

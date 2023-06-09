@@ -27,6 +27,36 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 const APP_SERVER_URL = 'https://servermonad.vinciis.in/api/screens';
 // const APP_SERVER_URL = "http://localhost:3333/api/screens"
 
+export const sendSyncCode = async ({
+  deviceIp, deviceMaac, deviceDisplay, deviceId, syncCode
+}) => async (dispatch) => {
+  dispatch({
+    type: 'SEND_SYNC_CODE_REQUEST',
+    payload: {deviceIp, deviceId, deviceDisplay, deviceMaac, syncCode},
+  });
+
+  try {
+    const { data } = await Axios.get(
+      `${APP_SERVER_URL}/allSyncedCode/allDevices`,
+      // {
+      //   deviceId, deviceIp, deviceMaac, deviceDisplay, syncCode,
+      // }
+    );
+
+    dispatch({
+      type: 'SEND_SYNC_CODE_SUCCESS',
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: 'SEND_SYNC_CODE_FAIL',
+      payload: error.response && error.response.data.message
+       ? error.response.data.message
+        : error.message,
+    });
+  }
+};
+
 export const getSyncedScreen = (syncCode) => async (dispatch) => {
   dispatch({
     type: GET_SYNCED_SCREEN_REQUEST,
@@ -180,16 +210,22 @@ export const getFiles = (path, screenName) => async (dispatch) => {
 export const downloadCampaigns =
   ({url, index}) =>
   async (dispatch) => {
-    let jobId;
+    // let jobId;
+    let filePath;
     // console.log(url);
     // let video_id = id;
     let video_url = url;
     let ext = '.mp4';
-    let dirs =
-    ReactNativeBlobUtil.fs.dirs.DownloadDir.split('/')
-      .splice(0, 4)
-      .join('/') + '/Download';
-    // console.log(dirs);
+    let dirs = RNFS.DownloadDirectoryPath;
+      // ReactNativeBlobUtil.fs.dirs.DownloadDir.split('/')
+      //   .splice(0, 4)
+      //   .join('/') + '/Download';
+    console.log(ReactNativeBlobUtil.fs.dirs.DownloadDir);
+    console.log(dirs);
+    console.log(RNFS.DownloadDirectoryPath);
+
+    const files = await RNFS.readDir(dirs);
+    console.log(files);
     // console.log(video_url);
 
     // RNFS.downloadFile({
@@ -231,57 +267,65 @@ export const downloadCampaigns =
     //   });
     // });
 
-    ReactNativeBlobUtil.config({
-      path: dirs + '/' + video_url.split('/').slice(4) + ext,
-      fileCache: true,
-      overwrite: false,
-      indicator: true,
-      // addAndroidDownloads: {
-      //   useDownloadManager: true, // <-- this is the only thing required
-      // //   // Optional, override notification setting (default to true)
-      // //   notification: true,
-      //   // // Title of download notification
-      //   // title: 'Great ! Download Success ! :O ',
-      //   // // File description (not notification description)
-      //   // description: 'A video file.',
-      //   // mime: 'video/mp4',
-      //   // Make the file scannable  by media scanner
-      //   // mediaScannable: true,
-      // },
-    })
-    .fetch('GET', video_url)
-    .progress({count: 10}, (received, total,) => {
-      console.log(`progress ${index} video`, received / total);
-      dispatch({
-        type: DOWNLOAD_CAMPAIGNS_REQUEST,
-        payload: (index, received / total),
+    if (files.includes(video_url.split('/').slice(-1)[0] + '.mp4')) {
+      console.log('File presesnt');
+      return null;
+    } else {
+
+      return ReactNativeBlobUtil.config({
+        path: dirs + '/' + video_url.split('/').slice(4) + ext,
+        fileCache: true,
+        overwrite: true,
+        indicator: true,
+        // addAndroidDownloads: {
+        //   useDownloadManager: true, // <-- this is the only thing required
+        // //   // Optional, override notification setting (default to true)
+        // //   notification: true,
+        //   // // Title of download notification
+        //   // title: 'Great ! Download Success ! :O ',
+        //   // // File description (not notification description)
+        //   // description: 'A video file.',
+        //   // mime: 'video/mp4',
+        //   // Make the file scannable  by media scanner
+        //   // mediaScannable: true,
+        // },
+      })
+      .fetch('GET', video_url)
+      .progress({count: 10}, (received, total,) => {
+        console.log(`progress ${index} video`, received / total);
+        dispatch({
+          type: DOWNLOAD_CAMPAIGNS_REQUEST,
+          payload: (index, received / total),
+        });
+      })
+      .then(res => {
+        // console.log(res.path());
+        // await ReactNativeBlobUtil.MediaCollection.copyToMediaStore({
+        //   name: video_url + ext, // name of the file
+        //   parentFolder: dirs, // subdirectory in the Media Store, e.g. HawkIntech/Files to create a folder HawkIntech with a subfolder Files and save the image within this folder
+        //   mimeType: 'video/mp4', // MIME type of the file
+        //   },
+        //     'Download', // Media Collection to store the file in ("Audio" | "Image" | "Video" | "Download")
+        //     res.path() // Path to the file being copied in the apps own storage
+        // );
+        filePath = res.path();
+        console.log('Video downloading');
+      })
+      .finally(() => {
+        dispatch({
+          type: DOWNLOAD_CAMPAIGNS_SUCCESS,
+          payload: filePath,
+        });
+        console.log('Video Downloaded Successfully', filePath);
+        return;
+      })
+      .catch((errorMessage, statusCode) => {
+        console.log('Downloading error', statusCode, errorMessage);
+        dispatch({
+          type: DOWNLOAD_CAMPAIGNS_FAIL,
+          payload: 'Download error ' +  errorMessage,
+        });
+        return errorMessage;
       });
-    })
-    .then(async res => {
-      // console.log(res.path());
-      // await ReactNativeBlobUtil.MediaCollection.copyToMediaStore({
-      //   name: video_url + ext, // name of the file
-      //   parentFolder: dirs, // subdirectory in the Media Store, e.g. HawkIntech/Files to create a folder HawkIntech with a subfolder Files and save the image within this folder
-      //   mimeType: 'video/mp4', // MIME type of the file
-      //   },
-      //     'Download', // Media Collection to store the file in ("Audio" | "Image" | "Video" | "Download")
-      //     res.path() // Path to the file being copied in the apps own storage
-      // );
-      dispatch({
-        type: DOWNLOAD_CAMPAIGNS_SUCCESS,
-        payload: res.path(),
-      });
-      console.log('Video downloading');
-    })
-    .then(() => {
-      console.log('Video Downloaded Successfully');
-      return;
-    })
-    .catch((errorMessage, statusCode) => {
-      console.log('Downloading error', statusCode, errorMessage);
-      dispatch({
-        type: DOWNLOAD_CAMPAIGNS_FAIL,
-        payload: 'Download error ' +  errorMessage,
-      });
-    });
+    }
   };
